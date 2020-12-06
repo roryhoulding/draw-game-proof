@@ -10,6 +10,7 @@ const startGameBtn = document.querySelector('#start-game');
 const textInputContainer = document.querySelector('#text-input-container');
 const textInput = document.querySelector('#text-input');
 const canvas = document.querySelector('#canvas');
+const imgElem = document.querySelector('#drawing-image');
 
 // Canvas context
 const canvasContext = canvas.getContext('2d')
@@ -23,16 +24,21 @@ let roundType;
 // Change UI for the round
 const setUI = (type) => {
   if (type === 'text') {
-    // canvas.classList.add('hidden');
+    canvas.classList.add('hidden');
+    imgElem.classList.remove('hidden');
     textInputContainer.classList.remove('hidden');
   } else if (type === 'drawing') {
-    // canvas.classList.remove('hidden');
+    canvas.classList.remove('hidden');
+    imgElem.classList.add('hidden');
     textInputContainer.classList.add('hidden');
   }
 }
 
-const getCanvasData = () => {
-  return canvasContext.getImageData(0, 0, canvas.width, canvas.height);
+const getCanvasImage = () => {
+  return canvas.toDataURL('image/png');
+  // return new Promise((resolve, reject) => {
+  //   canvas.toBlob((blob) => resolve(blob))
+  // })
 }
 
 const putCanvasData = (imgData) => {
@@ -74,23 +80,24 @@ socket.on('newRound', ({round, data}) => {
   roundNumberElem.innerHTML = round;
   setUI(data.outputType);
   roundType = data.outputType;
-  console.log(roundType);
-  console.log(data.inputData);
+  console.log('Input data: ', data.inputData);
   if (roundType === 'text') {
-    putCanvasData(data.inputData)
+    imgElem.src = data.inputData;
   } else if (roundType === 'drawing') {
     roundInputElem.innerHTML = data.inputData;
   }
 });
 
-socket.on('endRound', () => {
+socket.on('endRound', async () => {
   let roundOutput;
   if (roundType === 'drawing') {
-    roundOutput = getCanvasData();
+    // convert to base 64
+    // "You probably want to consider some form of byte encoding though (such as f.ex base-64) as any byte value above 127 (ASCII) is subject to character encoding used on a system"
+    roundOutput = getCanvasImage();
+    console.log(roundOutput);
   } else if (roundType === 'text') {
     roundOutput = getTextData();
   }
-  console.log(roundOutput);
   socket.emit('roundData', {
     playerID: player.id,
     data: roundOutput,
