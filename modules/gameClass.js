@@ -66,6 +66,7 @@ module.exports = class Game extends EventEmitter {
   }
 
   nextRound() {
+    // Incrememnt round and reset the currentRound variable
     this.currentRound = {
       number: this.currentRound.number += 1,
       timeLeft: this.ROUND_DURATION,
@@ -73,15 +74,29 @@ module.exports = class Game extends EventEmitter {
       lastRound: this.currentRound.lastRound,
     }
     console.log(`Round ${this.currentRound.number}`);
-    if (this.currentRound.number <= this.players.length) {
-      if (this.currentRound.number === this.players.length) {
-        this.currentRound.lastRound = true;
-        console.log('last round');
-      }
-      this.emit('newRound', this.currentRound.number);
-      this.currentRound.timeLeft = this.ROUND_DURATION;
-      this.currentRound.timer = this.startTimer();
+
+    // Rounds go from 1 to player.length
+    // If the round number === player length, this means
+    // it is the last round
+    // lastRound is used to end the game later
+    if (this.currentRound.number === this.players.length) {
+      this.currentRound.lastRound = true;
+      console.log('last round');
     }
+
+    // Send new round event out
+    // Will be caught and used to send newRound and the data
+    // out to the clients
+    this.emit('newRound', {
+      round: this.currentRound.number,
+      data: this.sets.map(set => set[this.currentRound.number - 1]),
+    });
+
+    // Probably need to get confirmation that 
+    // everybody is ready before doing this
+    // Have a timeout of 30 seconds for people to connect
+    this.currentRound.timeLeft = this.ROUND_DURATION;
+    this.currentRound.timer = this.startTimer();
   }
   
   endRound() {

@@ -35,8 +35,14 @@ game.on('playerDeleted', (players) => {
   io.sockets.emit('players', players)
 })
 
-game.on('newRound', (roundNumber) => {
-  io.sockets.emit('newRound', roundNumber)
+game.on('newRound', ({round, data}) => {
+  // Send the correct data to each player
+  for (set of data) {
+    io.to(set.playerID).emit('newRound', {
+      round,
+      data: set,
+    })
+  }
 });
 
 game.on('endRound', () => {
