@@ -62,7 +62,7 @@ module.exports = class Game extends EventEmitter {
 
   endGame() {
     console.log('End of game');
-    console.log(this.sets);
+    this.emit('results', this.sets);
   }
 
   nextRound() {

@@ -9,23 +9,39 @@
 </head>
 <body>
   <div id='player-names'></div>
-  <div id='timer'></div>
+  
+  <!-- ------ Drawing and writing UI ---------- -->
+  <div id='gameplay-container'>
+    <!-- Show input data -->
+    <img id='drawing-image'/>
+    <div id='round-text-description'></div>
 
-  <!-- Inputs -->
-  <div id='text-input-container' class='hidden'>
-    <input type='text' id='text-input'/>
+    <!-- Inputs -->
+    <div id='text-input-container' class='hidden'>
+      <input type='text' id='text-input'/>
+    </div>
+    <canvas id="canvas" width='400' height='400'></canvas>
+
+    <!-- Display -->
+    <div id='round-data'>
+      <div id='round-number'></div>
+    </div>
+    <div id='timer'></div>
+
+    <!-- Start button -->
+    <button type='button' id='start-game'>Start game</button>
   </div>
-  <canvas id="canvas" width='400' height='400'></canvas>
 
-  <!-- Show image -->
-  <img id='drawing-image'/>
-
-  <!-- Display -->
-  <div id='round-data'>
-    <div id='round-number'></div>
-    <div id='round-input'></div>
+  <!-- ------ Results UI ---------- -->
+  <div id='results-container' class='hidden'>
+    <img id='results-image'/>
+    <p id='results-text'></p>
+    <button type='button' id='results-next'>Next</button>
+    <button type='button' id='results-previous'>Previous</button>
   </div>
-  <button type='button' id='start-game'>Start game</button>
+
+
+  <!-- Script -->
   <script src="/game.js"></script>
 </body>
 </html>

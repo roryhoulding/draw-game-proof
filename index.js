@@ -50,6 +50,13 @@ game.on('endRound', () => {
   io.sockets.emit('endRound');
 });
 
+game.on('results', (sets) => {
+  console.log('Results time');
+  for (set of sets) {
+    io.to(set[0].playerID).emit('results', set);
+  }
+})
+
 io.on('connection', (socket) => {
   console.log('Socket connection created', socket.id);
 

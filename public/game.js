@@ -5,12 +5,18 @@ const socket = io.connect('http://localhost:3000');
 const playerNamesElem = document.querySelector('#player-names');
 const timerElem = document.querySelector('#timer');
 const roundNumberElem = document.querySelector('#round-number');
-const roundInputElem = document.querySelector('#round-input');
 const startGameBtn = document.querySelector('#start-game');
 const textInputContainer = document.querySelector('#text-input-container');
 const textInput = document.querySelector('#text-input');
+const roundTextDescription = document.querySelector('#round-text-description');
 const canvas = document.querySelector('#canvas');
 const imgElem = document.querySelector('#drawing-image');
+const gameplayContainer = document.querySelector('#gameplay-container');
+const resultsContainer = document.querySelector('#results-container');
+const resultsImg = document.querySelector('#results-image');
+const resultsTextElem = document.querySelector('#results-text');
+const resultsNextBtn = document.querySelector('#results-next');
+const resultsPreviousBtn = document.querySelector('#results-previous');
 
 // Canvas context
 const canvasContext = canvas.getContext('2d')
@@ -18,50 +24,99 @@ const canvasContext = canvas.getContext('2d')
 // Global vars
 let player = {}
 let roundType;
+let gameSection = 'input'; // input or results
+let resultsPage = 0;
+let finalSet = [];
 
 // Helper functions --------------------
 
 // Change UI for the round
-const setUI = (type) => {
+const setInputUI = (type) => {
   if (type === 'text') {
+    textInput.value = '';
     canvas.classList.add('hidden');
+    roundTextDescription.classList.add('hidden');
     imgElem.classList.remove('hidden');
     textInputContainer.classList.remove('hidden');
   } else if (type === 'drawing') {
+    clearCanvas();
+    roundTextDescription.classList.remove('hidden');
     canvas.classList.remove('hidden');
     imgElem.classList.add('hidden');
     textInputContainer.classList.add('hidden');
   }
 }
 
-const getCanvasImage = () => {
-  return canvas.toDataURL('image/png');
-  // return new Promise((resolve, reject) => {
-  //   canvas.toBlob((blob) => resolve(blob))
-  // })
+const setResultsUI = ({data, type}) => {
+  if (type === 'text') {
+    resultsTextElem.classList.remove('hidden');
+    resultsImg.classList.add('hidden');
+    resultsTextElem.innerHTML = data;
+  } else if (type === 'drawing') {
+    resultsTextElem.classList.add('hidden');
+    resultsImg.classList.remove('hidden');
+    resultsImg.src = data;
+  }
 }
 
-const putCanvasData = (imgData) => {
-  canvasContext.putImageData(imgData, 0, 0);
+const setUIContainer = (type) => {
+  if (type === 'input') {
+    gameplayContainer.classList.remove('hidden');
+    resultsContainer.classList.add('hidden');
+  } else if (type === 'results') {
+    gameplayContainer.classList.add('hidden');
+    resultsContainer.classList.remove('hidden');
+  }
+}
+
+const showResult = () => {
+  if (resultsPage === 0) {
+    setResultsUI({
+      type: finalSet[0].inputType,
+      data: finalSet[0].inputData
+    });
+  } else {
+    setResultsUI({
+      type: finalSet[resultsPage - 1].outputType,
+      data: finalSet[resultsPage - 1].outputData
+    });
+  }
+}
+
+const displayInputData = (data) => {
+  if (roundType === 'text') {
+    imgElem.src = data;
+  } else if (roundType === 'drawing') {
+    roundTextDescription.innerHTML = data;
+  }
+}
+
+const getCanvasImage = () => {
+  return canvas.toDataURL('image/png');
+}
+
+const clearCanvas = () => {
+  canvasContext.clearRect(0, 0, canvas.width, canvas.height);
 }
 
 const getTextData = () => {
   return textInput.value;
 }
 
+// Listen for socket events ---------------------
+
 // Init player
 socket.on('connect', () => {
-  // Get user name and emit player
   const playerName = prompt("Please enter your name", "");
   player = {
     id: socket.id,
     name: playerName
   }
-  // Send player to server
   socket.emit('playerJoins', player);
 });
 
-// Listen for new players or players leaving
+// Listen for players joining or leaving
+// and update the UI to show all players
 socket.on('players', (players) => {
   let playerNamesHTML = '';
   for (let player of players) {
@@ -71,21 +126,19 @@ socket.on('players', (players) => {
   playerNamesElem.innerHTML = playerNamesHTML;
 });
 
-// Display timer
+// Update the timer
 socket.on('timeChange', (time) => {
   timerElem.innerHTML = `${time}`;
 });
 
 socket.on('newRound', ({round, data}) => {
-  roundNumberElem.innerHTML = round;
-  setUI(data.outputType);
-  roundType = data.outputType;
-  console.log('Input data: ', data.inputData);
-  if (roundType === 'text') {
-    imgElem.src = data.inputData;
-  } else if (roundType === 'drawing') {
-    roundInputElem.innerHTML = data.inputData;
+  if (round === 1) {
+    startGameBtn.classList.add('hidden');
   }
+  roundNumberElem.innerHTML = `Round: ${round}`;
+  roundType = data.outputType;
+  setInputUI(data.outputType);
+  displayInputData(data.inputData);
 });
 
 socket.on('endRound', async () => {
@@ -94,7 +147,6 @@ socket.on('endRound', async () => {
     // convert to base 64
     // "You probably want to consider some form of byte encoding though (such as f.ex base-64) as any byte value above 127 (ASCII) is subject to character encoding used on a system"
     roundOutput = getCanvasImage();
-    console.log(roundOutput);
   } else if (roundType === 'text') {
     roundOutput = getTextData();
   }
@@ -102,18 +154,31 @@ socket.on('endRound', async () => {
     playerID: player.id,
     data: roundOutput,
   });
-  // Clear input elements for next round
-  if (roundType === 'drawing') {
-    canvasContext.clearRect(0, 0, canvas.width, canvas.height);
-  } else if (roundType === 'text') {
-    textInput.value = '';
-  }
+});
+
+// Time to display results
+socket.on('results', set => {
+  setUIContainer('results');
+  finalSet = set;
+  showResult();
 });
 
 // Start game
 startGameBtn.addEventListener('click', () => {
   socket.emit('startGame');
 });
+
+// Next results page
+resultsNextBtn.addEventListener('click', () => {
+  resultsPage = resultsPage === finalSet.length ? resultsPage : resultsPage + 1;
+  showResult();
+})
+
+// Previous results page
+resultsPreviousBtn.addEventListener('click', () => {
+  resultsPage = resultsPage === 0 ? 0 : resultsPage - 1;
+  showResult();
+})
 
 
 // Drawing on canvas interaction -------------------------
