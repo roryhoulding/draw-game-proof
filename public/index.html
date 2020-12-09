@@ -8,10 +8,26 @@
   <link rel="stylesheet" href="/styles.css">
 </head>
 <body>
-  <div id='player-names'></div>
+
+  <!-- Room join UI -->
+  <div id='join-room-container'>
+    <label for='room-code-input'>Room code:</label>
+    <input type='text' name='room-code-input' id='room-code-input'/>
+    <button type='button' id='join-room-button'>Join game</button>
+    <br>
+    <button type='button' id='new-room-button'>New game</button>
+  </div>
+
+  <!-- Waiting room -->
+  <div id="waiting-room-container" class='hidden'>
+    <!-- PLayer name -->
+    <div id='player-names'></div>
+    <!-- Start button -->
+    <button type='button' id='start-game'>Start game</button>
+  </div>
   
   <!-- ------ Drawing and writing UI ---------- -->
-  <div id='gameplay-container'>
+  <div id='gameplay-container' class='hidden'>
     <!-- Show input data -->
     <img id='drawing-image'/>
     <div id='round-text-description'></div>
@@ -27,9 +43,6 @@
       <div id='round-number'></div>
     </div>
     <div id='timer'></div>
-
-    <!-- Start button -->
-    <button type='button' id='start-game'>Start game</button>
   </div>
 
   <!-- ------ Results UI ---------- -->

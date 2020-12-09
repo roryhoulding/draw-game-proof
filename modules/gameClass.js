@@ -5,17 +5,23 @@ const getRandomInt = require('../helpers/getRandomInt');
 const findObjectInArray = require('../helpers/findObjectInArray');
 
 module.exports = class Game extends EventEmitter {
-  constructor() {
+  constructor(roomCode, io) {
     // Inherit from parent class
     super();
     
     // Constants
-    this.ROUND_DURATION = 5,
+    this.ROUND_DURATION = 5;
+    this.roomCode = roomCode;
+
+    // Classes are passed an object as a reference 
+    // This will not create a new instance of io every 
+    // time a new game is created
+    this.io = io;
     
     // Variables
     this.players = [];
     this.sets = [];
-    this.started = false,
+    this.started = false;
     this.currentRound = {
       number: 0,
       timeLeft: 0,
@@ -55,14 +61,11 @@ module.exports = class Game extends EventEmitter {
         this.sets.push(set);
       }
       this.started = true;
-      this.emit('started', 'Let the games begin!');
+      console.log('let the games begin');
+      console.log(this.io);
+      this.io.to(this.roomCode).emit('gameStarted');
       this.nextRound();
     }
-  }
-
-  endGame() {
-    console.log('End of game');
-    this.emit('results', this.sets);
   }
 
   nextRound() {
@@ -87,10 +90,19 @@ module.exports = class Game extends EventEmitter {
     // Send new round event out
     // Will be caught and used to send newRound and the data
     // out to the clients
-    this.emit('newRound', {
-      round: this.currentRound.number,
-      data: this.sets.map(set => set[this.currentRound.number - 1]),
-    });
+    // Send the correct data to each player
+    const data = this.sets.map(set => set[this.currentRound.number - 1]);
+    for (let set of data) {
+      this.io.to(set.playerID).emit('newRound', {
+        round: this.currentRound.number,
+        data: set,
+      })
+    }
+    // }
+    // this.emit('newRound', {
+    //   round: this.currentRound.number,
+    //   data: this.sets.map(set => set[this.currentRound.number - 1]),
+    // });
 
     // Probably need to get confirmation that 
     // everybody is ready before doing this
@@ -98,18 +110,26 @@ module.exports = class Game extends EventEmitter {
     this.currentRound.timeLeft = this.ROUND_DURATION;
     this.currentRound.timer = this.startTimer();
   }
+
+  endGame() {
+    for (let set of this.sets) {
+      this.io.to(set[0].playerID).emit('results', set);
+    }
+  }
+
   
   endRound() {
     // Emitting end round will trigger socket.io to emit
     // endRound to all sockets
     // which will collect the data from each socket and
     // trigger appendRoundData as below
-    this.emit('endRound');
+    console.log('End of round');
+    this.io.to(this.roomCode).emit('endRound');
   }
   
   startTimer() {
     return setInterval(() => {
-      this.emit('timeChange', this.currentRound.timeLeft);
+      this.io.to(this.roomCode).emit('timeChange', this.currentRound.timeLeft)
       this.currentRound.timeLeft--;
       if (this.currentRound.timeLeft < 0) {
         clearInterval(this.currentRound.timer);
@@ -120,7 +140,7 @@ module.exports = class Game extends EventEmitter {
 
   setPlayer(player) {
     this.players.push(player);
-    this.emit('playerCreated', this.players)
+    this.io.to(this.roomCode).emit('players', this.players);
   }
 
   deletePlayer(id) {
@@ -130,7 +150,7 @@ module.exports = class Game extends EventEmitter {
     // Delete the player at playerIndex from players
     this.players.splice(playerIndex, 1)
 
-    this.emit('playerDeleted', this.players)
+    this.io.to(this.roomCode).emit('players', this.players)
   }
   
   getPlayers() {
@@ -173,6 +193,15 @@ module.exports = class Game extends EventEmitter {
       return true;
     }
     return false;
+  }
+
+  init(roomCode, io) {
+    console.log('test');
+    this.emit('test');
+  }
+
+  test() {
+    this.io.sockets.emit('test')
   }
 
 

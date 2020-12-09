@@ -17,6 +17,11 @@ const resultsImg = document.querySelector('#results-image');
 const resultsTextElem = document.querySelector('#results-text');
 const resultsNextBtn = document.querySelector('#results-next');
 const resultsPreviousBtn = document.querySelector('#results-previous');
+const joinRoomBtn = document.querySelector('#join-room-button');
+const roomCodeElem = document.querySelector('#room-code-input');
+const createRoomBtn = document.querySelector('#new-room-button');
+const joinRoomContainer = document.querySelector('#join-room-container');
+const waitingRoomContainer = document.querySelector('#waiting-room-container');
 
 // Canvas context
 const canvasContext = canvas.getContext('2d')
@@ -112,7 +117,6 @@ socket.on('connect', () => {
     id: socket.id,
     name: playerName
   }
-  socket.emit('playerJoins', player);
 });
 
 // Listen for players joining or leaving
@@ -124,6 +128,7 @@ socket.on('players', (players) => {
     playerNamesHTML += `<p><strong>${name}</strong></p>`
   }
   playerNamesElem.innerHTML = playerNamesHTML;
+  console.log(players);
 });
 
 // Update the timer
@@ -163,6 +168,25 @@ socket.on('results', set => {
   showResult();
 });
 
+// Joined room
+socket.on('joinedRoom', () => {
+  waitingRoomContainer.classList.remove('hidden');
+  joinRoomContainer.classList.add('hidden');
+});
+
+// Error
+socket.on('err', (err) => {
+  console.log(err);
+});
+
+// On game start
+socket.on('gameStarted', () => {
+  waitingRoomContainer.classList.add('hidden');
+  gameplayContainer.classList.remove('hidden');
+})
+
+socket.on('test', () => console.log('test!'));
+
 // Start game
 startGameBtn.addEventListener('click', () => {
   socket.emit('startGame');
@@ -178,6 +202,19 @@ resultsNextBtn.addEventListener('click', () => {
 resultsPreviousBtn.addEventListener('click', () => {
   resultsPage = resultsPage === 0 ? 0 : resultsPage - 1;
   showResult();
+})
+
+// Join room
+joinRoomBtn.addEventListener('click', () => {
+  socket.emit('joinRoom', {
+    player,
+    roomCode: roomCodeElem.value,
+  })
+})
+
+// Create room
+createRoomBtn.addEventListener('click', () => {
+  socket.emit('newGameRoom', player);
 })
 
 
